@@ -1,2 +1,2 @@
 # exoskeleton-power
-Repository containing power subsystem code for McMaster Exoskeleton
+Repository containing code for the sensor and motor subteam for McMaster Exoskeleton
