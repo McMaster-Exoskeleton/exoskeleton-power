@@ -1,2 +1,2 @@
-# exoskeleton-electrical
-Repository containing electrical subsystem code for McMaster Exoskeleton
+# exoskeleton-power
+Repository containing power subsystem code for McMaster Exoskeleton
