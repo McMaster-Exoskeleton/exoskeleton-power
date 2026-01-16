@@ -85,8 +85,13 @@ start = 0
 while(start != 1):
     start = int(input("Enter '1' to start sampling."))
 
+# Print header for console output
+print("\n" + "="*60)
+print(f"{'Sample':<8} {'Voltage (V)':<15} {'Current (A)':<15} {'Power (W)':<15}")
+print("="*60)
+
 while True:
-    line_test=ser.readline()
+    line_test = ser.readline()
     print("Test values: ", line_test, "\n")
     line = line_test.decode("ascii", errors="ignore").strip()
 
@@ -102,6 +107,11 @@ while True:
         voltages.append(v)
         currents.append(i)
         powers.append(p)
+        
+        # Print values to console
+        sample_count += 1
+        print(f"{sample_count:<8} {v:<15.6f} {i:<15.6f} {p:<15.6f}")
+        
     except ValueError:
         # ignore malformed lines
         continue
