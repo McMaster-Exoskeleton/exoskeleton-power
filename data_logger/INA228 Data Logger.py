@@ -1,3 +1,36 @@
+"""
+INA228 Data Logger
+==================
+
+Title: Serial Data Logger for INA228 Power Monitoring
+
+Description:
+    This script communicates with an STM32 Nucleo microcontroller via serial
+    to collect power measurements from an INA228 power monitor IC. It logs
+    voltage, current, and power data at a user-specified sampling rate and
+    duration, then visualizes the results.
+
+Usage:
+    1. Connect STM32 Nucleo to PC via USB (serial interface)
+    2. Update SERIAL_PORT if needed (default: COM6)
+    3. Run: python "INA228 Data Logger.py"
+    4. Enter desired sampling rate (Hz) when prompted
+    5. Enter desired total collection time (seconds) when prompted
+    6. Data will be collected and saved to 'ina228_data.csv'
+    7. Plot window will display the collected measurements
+
+Requirements:
+    - pyserial
+    - numpy
+    - matplotlib
+
+Data Format:
+    The output CSV file contains columns: Time (s), Voltage (V), Current (mA), Power (mW)
+
+Author: Exoskeleton Power Team
+Date: January 2026
+"""
+
 import serial
 import time
 import numpy as np
