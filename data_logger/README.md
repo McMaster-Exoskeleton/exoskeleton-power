@@ -22,7 +22,8 @@ This data logger captures real-time power measurements from an INA228 power moni
 - Connect Nucleo to PC via USB
 
 ### 2. Firmware Upload
-Upload the C firmware from `Src/main.c` to your Nucleo board using STM32CubeIDE
+Upload the C firmware from `Src/main.c` to your Nucleo board using STM32CubeIDE.
+The python file requires the serial library. Note this works with 3.10 only during testing.
 
 ### 3. Run Data Logger
 ```bash
