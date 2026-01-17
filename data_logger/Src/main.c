@@ -99,12 +99,10 @@ int main(void)
   MX_USART2_UART_Init();
 
   /* Set GPIO outputs PB0, PB1, PB2 LOW */
-  HAL_GPIO_WritePin(GPIOB,
-                    GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2,
-                    GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2, GPIO_PIN_RESET);
 
   /* Initialize INA228 */
-  if (INA228_Init((0x40 << 1), 0.01f) != HAL_OK)
+  if (INA228_Init(INA228_ADDR, 0.01f) != HAL_OK)
   {
     const char *msg = "INA228 INIT FAILED\n";
     HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
@@ -132,66 +130,60 @@ int main(void)
   }
 }
 
-/* ========================================================= */
-/* Receive one UART line terminated by '\n'                  */
-/* ========================================================= */
+// Reads incoming data from the PC one byte at a time until it receives a newline character '\n'
 static void UART_ReceiveLine(void)
 {
   rxIndex = 0;
-  memset(rxBuf, 0, sizeof(rxBuf));
+  memset(rxBuf, 0, sizeof(rxBuf)); // Clear the buffer
 
   while (1)
   {
     uint8_t byte;
-    HAL_UART_Receive(&huart2, &byte, 1, HAL_MAX_DELAY);
+    HAL_UART_Receive(&huart2, &byte, 1, HAL_MAX_DELAY); // Wait for 1 byte
 
     if (byte == '\n')
       break;
 
     if (rxIndex < RX_BUF_SIZE - 1)
-      rxBuf[rxIndex++] = (char)byte;
+      rxBuf[rxIndex++] = (char)byte; // Store the character
   }
 }
 
-/* ========================================================= */
-/* Parse: START,<sampling_rate>,<total_time>                 */
-/* ========================================================= */
+// Checks if the received line is a valid START command and extracts the sampling parameters
 static int Parse_Command(void)
 {
-  if (strncmp(rxBuf, "START", 5) != 0)
+  if (strncmp(rxBuf, "START", 5) != 0) // Check if begins with "START"
     return 0;
 
   char *tok = strtok(rxBuf, ",");   // START
-  tok = strtok(NULL, ",");
+  tok = strtok(NULL, ",");          // Get next token (sampling_rate)
   if (!tok) return 0;
-  sampling_rate = atoi(tok);
+  sampling_rate = atoi(tok);        // Convert string to integer
 
-  tok = strtok(NULL, ",");
+  tok = strtok(NULL, ",");           // Get next token (total_time)
   if (!tok) return 0;
   total_time = atoi(tok);
 
   if (sampling_rate <= 0 || total_time <= 0)
-    return 0;
+    return 0; // Invalid values
 
   num_samples = sampling_rate * total_time;
   if (num_samples > MAX_SAMPLES)
-    num_samples = MAX_SAMPLES;
+    num_samples = MAX_SAMPLES; // Cap at 10,000 samples
 
   return 1;
 }
 
-/* ========================================================= */
-/* Acquire data from INA228                                  */
-/* ========================================================= */
+// Reads voltage, current, and power measurements from the INA228 sensor at the specified sampling rate
 static void Acquire_Data(void)
 {
   uint8_t healthy = 0;
-  INA228_CheckHealth((0x40 << 1), &healthy);
+  INA228_CheckHealth(INA228_ADDR, &healthy); // Check if the sensor is working
 
   if (!healthy)
   {
     for (int i = 0; i < num_samples; i++)
-      voltage_buf[i] = current_buf[i] = power_buf[i] = 0.0f;
+      voltage_buf[i] = current_buf[i] = power_buf[i] = 0.0f; // Fill with zeros to indicate sensor failed
     return;
   }
 
@@ -201,9 +193,9 @@ static void Acquire_Data(void)
   {
     float v = 0.0f, c = 0.0f, p = 0.0f;
 
-    INA228_ReadVoltage((0x40 << 1), &v);
-    INA228_ReadCurrent((0x40 << 1), &c);
-    INA228_ReadPower  ((0x40 << 1), &p);
+    INA228_ReadVoltage(INA228_ADDR, &v); 
+    INA228_ReadCurrent(INA228_ADDR, &c);
+    INA228_ReadPower  (INA228_ADDR, &p);
 
     voltage_buf[i] = v;
     current_buf[i] = c;
@@ -213,9 +205,7 @@ static void Acquire_Data(void)
   }
 }
 
-/* ========================================================= */
-/* Transmit data to PC                                       */
-/* ========================================================= */
+// Transmits the acquired data back to the PC via UART in CSV format
 static void Transmit_Data(void)
 {
   char line[64];
@@ -223,7 +213,7 @@ static void Transmit_Data(void)
   for (int i = 0; i < num_samples; i++)
   {
     int len = snprintf(line, sizeof(line),
-                       "%.6f,%.6f,%.6f\n",
+                       "%.6f,%.6f,%.6f\n", // Format: voltage,current,power
                        voltage_buf[i],
                        current_buf[i],
                        power_buf[i]);
@@ -231,11 +221,11 @@ static void Transmit_Data(void)
     HAL_UART_Transmit(&huart2, (uint8_t*)line, len, HAL_MAX_DELAY);
   }
 
-  const char done[] = "DONE\n";
+  const char done[] = "DONE\n"; // Signal end of transmission
   HAL_UART_Transmit(&huart2, (uint8_t*)done, sizeof(done)-1, HAL_MAX_DELAY);
 }
 
-/* ========================================================= */
+// Test function to transmit synthetic data for verification
 static void Transmit_Data_Test(void)
 {
   char line[64];

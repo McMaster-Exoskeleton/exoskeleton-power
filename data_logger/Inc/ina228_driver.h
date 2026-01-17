@@ -13,9 +13,7 @@
 
 /* INA228 I2C Addresses */
 // NOTE: must shift device address left 1 bit because STM32 HAL expects 8-bit address format (7-bit address frame + 1 R/W bit)
-#define INA228_ADDR_BATTERY     (0x40 << 1)   // A1=GND, A0=GND
-#define INA228_ADDR_BUS         (0x41 << 1)   // A1=GND, A0=VCC
-#define INA228_ADDR_MOTOR_BUS   (0x44 << 1)   // A1=VCC, A0=GND
+#define INA228_ADDR (0x40 << 1)   // A1=GND, A0=GND
 
 /* INA228 Register Addresses */
 #define INA228_REG_CONFIG       	0x00
@@ -53,7 +51,7 @@
 
 /* Calibration Constants */
 #define SHUNT_RESISTOR    		0.0015f  		// 15 mOhm
-#define MAX_EXPECTED_CURRENT	10.0f			// 25A max expected current
+#define MAX_EXPECTED_CURRENT	10.0f			// 10A max expected current
 #define INA228_CURRENT_LSB  	(MAX_EXPECTED_CURRENT / 524288.0f)  // Current LSB = (Max expected current / 2^19) - datasheet Section 8.1.2 equation 3)
 
 #define INA228_VBUS_LSB			0.0001953125f 	// 195.3125 uV per LSB (datasheet Table 8-1)
