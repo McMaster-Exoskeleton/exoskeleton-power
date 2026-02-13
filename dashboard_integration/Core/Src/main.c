@@ -414,7 +414,7 @@ static void Dashboard_Transmit_UART(void)
                      V1_avg, I1_avg, P1_avg, healthy1,
                      V2_avg, I2_avg, P2_avg, healthy2);
 
-  HAL_UART_Transmit(&huart1, (uint8_t*)line, len, HAL_MAX_DELAY);
+  HAL_UART_Transmit(&huart2, (uint8_t*)line, len, HAL_MAX_DELAY);
 }
 
 int Dashboard_Receive_UART(void)
