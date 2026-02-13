@@ -119,30 +119,23 @@ int main(void)
 
 
 
-  int sample_number=0;
-  while (1)
-  {
-	    Floating_Average(sample_number++);
-	    if (Dashboard_Receive_UART())
-	    {
-	    	Dashboard_Transmit_UART();
-	    }
-
-	    sample_number=sample_number%FLOAT_AVG_SIZE;
-  }
+  int sample_number = 0;
+  uint32_t last_transmit_ms = 0;
+  const uint32_t transmit_interval_ms = 100;  // 10Hz transmission rate
 
   while (1)
   {
-    Floating_Average(sample_number++);
-    if (Dashboard_Receive_UART())
+    // Read and update floating average
+    Floating_Average(sample_number);
+    sample_number = (sample_number + 1) % FLOAT_AVG_SIZE;
+
+    // Automatically transmit data at 10Hz for dashboard
+    uint32_t now = HAL_GetTick();
+    if (now - last_transmit_ms >= transmit_interval_ms)
     {
-    	Dashboard_Transmit_UART();
+      last_transmit_ms = now;
+      Dashboard_Transmit_UART();
     }
-
-    sample_number=sample_number%FLOAT_AVG_SIZE;
-
-
-
   }
 }
 
@@ -384,44 +377,44 @@ if (!healthy4)
 
 static void Dashboard_Transmit_UART(void)
 {
-  char line[RX_BUF_SIZE];
-  float V1_avg=0;
-  float I1_avg=0;
-  float P1_avg=0;
-  float V2_avg=0;
-  float I2_avg=0;
-  float P2_avg=0;
+  char line[256];
+  float V1_avg = 0;
+  float I1_avg = 0;
+  float P1_avg = 0;
+  float V2_avg = 0;
+  float I2_avg = 0;
+  float P2_avg = 0;
 
-  for (int i=0; i<FLOAT_AVG_SIZE;i++)
+  uint8_t healthy1 = 0, healthy2 = 0;
+  INA228_CheckHealth(INA228_ADDR1, &healthy1);
+  INA228_CheckHealth(INA228_ADDR2, &healthy2);
+
+  for (int i = 0; i < FLOAT_AVG_SIZE; i++)
   {
-	  V1_avg+=voltage_avg1[i];
-	  I1_avg+=current_avg1[i];
-	  P1_avg+=power_avg1[i];
-	  V2_avg+=voltage_avg2[i];
-	  I2_avg+=current_avg2[i];
-	  P2_avg+=power_avg2[i];
+    V1_avg += voltage_avg1[i];
+    I1_avg += current_avg1[i];
+    P1_avg += power_avg1[i];
+    V2_avg += voltage_avg2[i];
+    I2_avg += current_avg2[i];
+    P2_avg += power_avg2[i];
   }
 
-  V1_avg/=FLOAT_AVG_SIZE;
-  I1_avg/=FLOAT_AVG_SIZE;
-  P1_avg/=FLOAT_AVG_SIZE;
-  V2_avg/=FLOAT_AVG_SIZE;
-  I2_avg/=FLOAT_AVG_SIZE;
-  P2_avg/=FLOAT_AVG_SIZE;
-
+  V1_avg /= FLOAT_AVG_SIZE;
+  I1_avg /= FLOAT_AVG_SIZE;
+  P1_avg /= FLOAT_AVG_SIZE;
+  V2_avg /= FLOAT_AVG_SIZE;
+  I2_avg /= FLOAT_AVG_SIZE;
+  P2_avg /= FLOAT_AVG_SIZE;
 
   int len = snprintf(line, sizeof(line),
-                           "%.6f,%.6f,%.6f,%.6f,%.6f,%.6f\n",
-                           V1_avg,
-                           I1_avg,
-                           P1_avg,
-    					   V2_avg,
-                           I2_avg,
-                           P2_avg);
-  HAL_UART_Transmit(&huart1, (uint8_t*)line, len, HAL_MAX_DELAY);
+                     "{\"voltage\":%.3f,\"current\":%.3f,\"power\":%.3f,"
+                     "\"healthy\":%d,"
+                     "\"voltage2\":%.3f,\"current2\":%.3f,\"power2\":%.3f,"
+                     "\"healthy2\":%d}\n",
+                     V1_avg, I1_avg, P1_avg, healthy1,
+                     V2_avg, I2_avg, P2_avg, healthy2);
 
-  /*const char done[] = "DONE\n";*/
-  //HAL_UART_Transmit(&huart1, (uint8_t*)done, sizeof(done)-1, HAL_MAX_DELAY);
+  HAL_UART_Transmit(&huart1, (uint8_t*)line, len, HAL_MAX_DELAY);
 }
 
 int Dashboard_Receive_UART(void)
