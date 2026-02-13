@@ -26,97 +26,127 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "can/can_app.h"
-#include "can/can_bus_stm32.hpp"
+#include "can_bus.h"
 
 
-/* ================= USER DEFINES ================= */
+/*--------------------------------------------------------------------------*/
+/*------------------------------DASHBOARD PARAMETERS------------------------*/
+/*--------------------------------------------------------------------------*/
+/*CHANGE NUMBER OF SAMPLES IN FLOATING POINT AVERAGE HERE*/
+#define FLOAT_AVG_SIZE   5
+static int sampling_rate = 10;   // Hz
+#define DASHBOARD_COMMAND   1000	//Arbitrary message to send data
+
+
 #define RX_BUF_SIZE    64
-#define MAX_SAMPLES    10000
-/* =============================================== */
+static char rxBuf[RX_BUF_SIZE];
+static int  rxIndex;
 
 
-/* Sampling parameters */
-static int sampling_rate = 128;   // Hz
-static int total_time    = 10;   // seconds
+/* AVERAGE BUFFERS */
+static float voltage_avg1[FLOAT_AVG_SIZE];
+static float current_avg1[FLOAT_AVG_SIZE];
+static float power_avg1[FLOAT_AVG_SIZE];
 
-/* Data buffers */
-static float voltage_buf[MAX_SAMPLES];
-static float current_buf[MAX_SAMPLES];
-static float power_buf[MAX_SAMPLES];
+static float voltage_avg2[FLOAT_AVG_SIZE];
+static float current_avg2[FLOAT_AVG_SIZE];
+static float power_avg2[FLOAT_AVG_SIZE];
 
-static uint16_t power_id=0x123;			//CAN ID for power MCU
-static uint16_t dashboard_id=0x124;		//CAN ID for dashboard MCU
-
+static float ERROR_VALUE=100.0f;
 
 
-/* Private function prototypes -----------------------------------------------*/
+
+/*--------------------------------------------------------------------------*/
+/*----------------------------LAPTOP UART PARAMETERS------------------------*/
+/*--------------------------------------------------------------------------*/
+#define MAX_SAMPLES    2000
+static int total_time    = 0;   // seconds
+static int num_samples   = 0;
+static float voltage_buf1[MAX_SAMPLES];
+static float current_buf1[MAX_SAMPLES];
+static float power_buf1[MAX_SAMPLES];
+
+static float voltage_buf2[MAX_SAMPLES];
+static float current_buf2[MAX_SAMPLES];
+static float power_buf2[MAX_SAMPLES];
+
+
 void SystemClock_Config(void);
+
+/*--------------------------------------------------------------------------*/
+/*-------------------------DASHBOARD RELATED FUNCTIONS----------------------*/
+/*--------------------------------------------------------------------------*/
+static void Floating_Average(int i);
+static void Dashboard_Transmit_UART(void);
+int Dashboard_Receive_UART(void);
+static void Dashboard_Transmit_CAN(void);
+int Dashboard_Receive_CAN(void);
+/*--------------------------------------------------------------------------*/
+/*----------------------------===LAPTOP UART FUNCTIONS----------------------*/
+/*--------------------------------------------------------------------------*/
 static void Acquire_Data(void);
-void Data_Average(float* voltage, float* current, float* power);
-/* USER CODE BEGIN PFP */
+static void UART_ReceiveLine(void);
+static void Transmit_Data(void);
 
-/* USER CODE END PFP */
 
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
-
-/**
-  * @brief  The application entry point.
-  * @retval int
-  */
 int main(void)
 {
-
-  /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
-
-  /* MCU Configuration--------------------------------------------------------*/
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
-
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
-  /* Configure the system clock */
   SystemClock_Config();
-
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_I2C1_Init();
   MX_USART2_UART_Init();
-  CanApp_Init();
-  MX_CAN1_Init();
-  MX_CAN2_Init();
-  if (INA228_Init(INA228_ADDR, 0.01f) != HAL_OK){
-	  //if we want to do anything if initialization fails, we do it here
-	  ;
+  //MX_CAN1_Init();
+  //MX_CAN2_Init();
+  MX_USART1_UART_Init();
+  can_bus_init(&hcan1);
+
+  HAL_GPIO_WritePin(GPIOB,
+                    GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2,
+                    GPIO_PIN_RESET);
+
+
+  if (INA228_Init(INA228_ADDR1, 0.015f) != HAL_OK)
+  {
+    const char *msg = "INA228 #1 INIT FAILED\n";
+    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+  }
+  if (INA228_Init(INA228_ADDR2, 0.015f) != HAL_OK)
+  {
+    const char *msg = "INA228 #2 INIT FAILED\n";
+    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
   }
 
-  //This is the main loop. The idea is that we want to acquire data, then transmit it when dashboard
-  //requests it.
-  //This program will collect a five point average for voltage and current average
-  float v_avg=0;
-  float i_avg=0;
-  float p_avg=0;
 
-  //write code in while loop to collect average then check if dashboard is requesting it.
 
+  int sample_number=0;
+  while (1)
+  {
+	    Floating_Average(sample_number++);
+	    if (Dashboard_Receive_UART())
+	    {
+	    	Dashboard_Transmit_UART();
+	    }
+
+	    sample_number=sample_number%FLOAT_AVG_SIZE;
+  }
+
+  while (1)
+  {
+    Floating_Average(sample_number++);
+    if (Dashboard_Receive_UART())
+    {
+    	Dashboard_Transmit_UART();
+    }
+
+    sample_number=sample_number%FLOAT_AVG_SIZE;
+
+
+
+  }
 }
 
-/**
-  * @brief System Clock Configuration
-  * @retval None
-  */
+
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
@@ -154,14 +184,7 @@ void SystemClock_Config(void)
   }
 }
 
-/* USER CODE BEGIN 4 */
 
-/* USER CODE END 4 */
-
-/**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
@@ -189,15 +212,30 @@ void assert_failed(uint8_t *file, uint32_t line)
 }
 #endif /* USE_FULL_ASSERT */
 
+
 static void Acquire_Data(void)
 {
-  uint8_t healthy = 0;
-  INA228_CheckHealth(INA228_ADDR, &healthy);
-  int num_samples=sampling_rate*total_time;
-  if (!healthy)
+  uint8_t healthy1 = 0, healthy2 = 0;
+  INA228_CheckHealth(INA228_ADDR1, &healthy1);
+  INA228_CheckHealth(INA228_ADDR2, &healthy2);
+  /*Five sensors*/
+  /*uint8_t healthy3 = 0, healthy4 = 0, healthy5=0;
+  INA228_CheckHealth(INA228_ADDR1, &healthy3);
+  INA228_CheckHealth(INA228_ADDR2, &healthy4);
+  INA228_CheckHealth(INA228_ADDR2, &healthy5);*/
+
+  if (!healthy1 || !healthy2/*|| !healthy3 || !healthy4 || !healthy5*/)
   {
-    for (int i = 0; i < num_samples; i++)
-      voltage_buf[i] = current_buf[i] = power_buf[i] = 0.0f;
+    for (int i = 0; i < num_samples; i++) {
+    	voltage_buf1[i] = current_buf1[i] = power_buf1[i] = 0.0f;
+    	voltage_buf2[i] = current_buf2[i] = power_buf2[i] = 0.0f;
+    	/*
+    	voltage_buf3[i] = current_buf3[i] = power_buf3[i] = 0.0f;
+    	voltage_buf4[i] = current_buf4[i] = power_buf4[i] = 0.0f;
+    	voltage_buf5[i] = current_buf5[i] = power_buf5[i] = 0.0f;
+    	*/
+
+    }
     return;
   }
 
@@ -205,33 +243,273 @@ static void Acquire_Data(void)
 
   for (int i = 0; i < num_samples; i++)
   {
-    float v = 0.0f, c = 0.0f, p = 0.0f;
+    float v1 = 0.0f, c1 = 0.0f, p1 = 0.0f;
+    float v2 = 0.0f, c2 = 0.0f, p2 = 0.0f;
+    /*
+    float v3 = 0.0f, c3 = 0.0f, p3 = 0.0f;
+    float v4 = 0.0f, c4 = 0.0f, p4 = 0.0f;
+    float v5 = 0.0f, c5 = 0.0f, p5 = 0.0f;
+    */
 
-    INA228_ReadVoltage(INA228_ADDR, &v);
-    INA228_ReadCurrent(INA228_ADDR, &c);
-    INA228_ReadPower  (INA228_ADDR, &p);
+    INA228_ReadVoltage(INA228_ADDR1, &v1);
+    INA228_ReadCurrent(INA228_ADDR1, &c1);
+    INA228_ReadPower  (INA228_ADDR1, &p1);
 
-    voltage_buf[i] = v;
-    current_buf[i] = c;
-    power_buf[i]   = p;
+    INA228_ReadVoltage(INA228_ADDR2, &v2);
+    INA228_ReadCurrent(INA228_ADDR2, &c2);
+    INA228_ReadPower  (INA228_ADDR2, &p2);
+
+    /*
+    INA228_ReadVoltage(INA228_ADDR3, &v3);
+    INA228_ReadCurrent(INA228_ADDR3, &c3);
+    INA228_ReadPower  (INA228_ADDR3, &p3);
+
+    INA228_ReadVoltage(INA228_ADDR4, &v4);
+    INA228_ReadCurrent(INA228_ADDR4, &c4);
+    INA228_ReadPower  (INA228_ADDR4, &p4);
+
+    INA228_ReadVoltage(INA228_ADDR5, &v5);
+    INA228_ReadCurrent(INA228_ADDR5, &c5);
+    INA228_ReadPower  (INA228_ADDR5, &p5);
+    */
+
+    voltage_buf1[i] = v1;
+    current_buf1[i] = c1;
+    power_buf1[i]   = p1;
+
+    voltage_buf2[i] = v2;
+    current_buf2[i] = c2;
+    power_buf2[i]   = p2;
+
+    /*
+    voltage_buf2[i] = v3;
+    current_buf2[i] = c3;
+    power_buf2[i]   = p3;
+
+    voltage_buf2[i] = v4;
+    current_buf2[i] = c4;
+    power_buf2[i]   = p4;
+
+    voltage_buf2[i] = v5;
+    current_buf2[i] = c5;
+    power_buf2[i]   = p5;
+     */
 
     HAL_Delay(delay_ms);
   }
 }
-
-void Data_Average(float *voltage, float *current, float *power)
+static void Floating_Average(int i)
 {
-	uint8_t healthy = 0;
-	INA228_CheckHealth(INA228_ADDR, &healthy);
-	int num_samples=sampling_rate*total_time;
-	if (!healthy)
+	uint8_t healthy1 = 0, healthy2 = 0;
+	INA228_CheckHealth(INA228_ADDR1, &healthy1);
+	INA228_CheckHealth(INA228_ADDR2, &healthy2);
+
+	/*Five sensors
+  	  uint8_t healthy3 = 0, healthy4 = 0, healthy5=0;
+  	  INA228_CheckHealth(INA228_ADDR1, &healthy3);
+  	  INA228_CheckHealth(INA228_ADDR2, &healthy4);
+  	  INA228_CheckHealth(INA228_ADDR2, &healthy5);
+	 */
+
+	if (!healthy1)
 	{
-		INA228_ReadVoltage(INA228_ADDR, voltage);
-		INA228_ReadCurrent(INA228_ADDR, current);
-		INA228_ReadPower  (INA228_ADDR, power);
-	}
+		for (int y=0; y<FLOAT_AVG_SIZE;y++)
+		{
+		  voltage_avg1[y] = current_avg1[y] = power_avg1[y] = ERROR_VALUE;
+		}
+
+	 }
+
+	if (!healthy2)
+    {
+  	  for (int y=0; y<FLOAT_AVG_SIZE;y++)
+  		{
+  		  voltage_avg2[y] = current_avg2[y] = power_avg2[y] = ERROR_VALUE;
+  		}
+
+    }
+	/*
+	if (!healthy3)
+    {
+  	  for (int y=0; y<FLOAT_AVG_SIZE;y++)
+  		{
+  		  voltage_avg3[y] = current_avg3[y] = power_avg3[y] = ERROR_VALUE;
+  		}
+  	}
+if (!healthy4)
+    {
+  	  for (int y=0; y<FLOAT_AVG_SIZE;y++)
+  		{
+  		  voltage_avg4[y] = current_avg4[y] = power_avg4[y] = ERROR_VALUE;
+  		}
+
+    }
+
+  if (!healthy5)
+    {
+  	  for (int y=0; y<FLOAT_AVG_SIZE;y++)
+  		{
+  		  voltage_avg5[y] = current_avg5[y] = power_avg5[y] = ERROR_VALUE;
+  		}
+
+    }
+    */
+
 	uint32_t delay_ms = (sampling_rate > 0) ? (1000 / sampling_rate) : 1;
-	HAL_Delay(delay_ms);
+	INA228_ReadVoltage(INA228_ADDR1, &voltage_avg1[i]);
+	INA228_ReadCurrent(INA228_ADDR1, &current_avg1[i]);
+	INA228_ReadPower  (INA228_ADDR1, &power_avg1[i]);
+
+	INA228_ReadVoltage(INA228_ADDR2, &voltage_avg2[i]);
+	INA228_ReadCurrent(INA228_ADDR2, &current_avg2[i]);
+	INA228_ReadPower  (INA228_ADDR2, &power_avg2[i]);
+
+	/*
+	INA228_ReadVoltage(INA228_ADDR3, &voltage_avg3[i]);
+	INA228_ReadCurrent(INA228_ADDR3, &current_avg3[i]);
+	INA228_ReadPower  (INA228_ADDR3, &power_avg3[i]);
+
+	INA228_ReadVoltage(INA228_ADDR4, &voltage_avg4[i]);
+	INA228_ReadCurrent(INA228_ADDR4, &current_avg4[i]);
+	INA228_ReadPower  (INA228_ADDR4, &power_avg4[i]);
+
+	INA228_ReadVoltage(INA228_ADDR5, &voltage_avg5[i]);
+	INA228_ReadCurrent(INA228_ADDR5, &current_avg5[i]);
+	INA228_ReadPower  (INA228_ADDR5, &power_avg5[i]);
+	 */
+
+    HAL_Delay(delay_ms);
+}
+
+
+static void Dashboard_Transmit_UART(void)
+{
+  char line[RX_BUF_SIZE];
+  float V1_avg=0;
+  float I1_avg=0;
+  float P1_avg=0;
+  float V2_avg=0;
+  float I2_avg=0;
+  float P2_avg=0;
+
+  for (int i=0; i<FLOAT_AVG_SIZE;i++)
+  {
+	  V1_avg+=voltage_avg1[i];
+	  I1_avg+=current_avg1[i];
+	  P1_avg+=power_avg1[i];
+	  V2_avg+=voltage_avg2[i];
+	  I2_avg+=current_avg2[i];
+	  P2_avg+=power_avg2[i];
+  }
+
+  V1_avg/=FLOAT_AVG_SIZE;
+  I1_avg/=FLOAT_AVG_SIZE;
+  P1_avg/=FLOAT_AVG_SIZE;
+  V2_avg/=FLOAT_AVG_SIZE;
+  I2_avg/=FLOAT_AVG_SIZE;
+  P2_avg/=FLOAT_AVG_SIZE;
+
+
+  int len = snprintf(line, sizeof(line),
+                           "%.6f,%.6f,%.6f,%.6f,%.6f,%.6f\n",
+                           V1_avg,
+                           I1_avg,
+                           P1_avg,
+    					   V2_avg,
+                           I2_avg,
+                           P2_avg);
+  HAL_UART_Transmit(&huart1, (uint8_t*)line, len, HAL_MAX_DELAY);
+
+  /*const char done[] = "DONE\n";*/
+  //HAL_UART_Transmit(&huart1, (uint8_t*)done, sizeof(done)-1, HAL_MAX_DELAY);
+}
+
+int Dashboard_Receive_UART(void)
+{
+  rxIndex = 0;
+  memset(rxBuf, 0, sizeof(rxBuf));
+  uint8_t byte;
+  HAL_UART_Receive(&huart1, &byte, 1, HAL_MAX_DELAY);
+  if (byte == DASHBOARD_COMMAND)
+  {
+	  return 1;
+  }
+  return 0;
+}
+
+static void UART_ReceiveLine(void)
+{
+  rxIndex = 0;
+  memset(rxBuf, 0, sizeof(rxBuf));
+
+  while (1)
+  {
+    uint8_t byte;
+    HAL_UART_Receive(&huart2, &byte, 1, HAL_MAX_DELAY);
+
+    if (byte == '\n')
+      break;
+
+    if (rxIndex < RX_BUF_SIZE - 1)
+      rxBuf[rxIndex++] = (char)byte;
+  }
+}
+
+static void Transmit_Data(void)
+{
+  char line[RX_BUF_SIZE];
+
+  for (int i = 0; i < num_samples; i++)
+  {
+    int len = snprintf(line, sizeof(line),
+                       "%.6f,%.6f,%.6f,%.6f,%.6f,%.6f\n",
+                       voltage_buf1[i],
+                       current_buf1[i],
+                       power_buf1[i],
+					   voltage_buf2[i],
+                       current_buf2[i],
+                       power_buf2[i]);
+
+    HAL_UART_Transmit(&huart2, (uint8_t*)line, len, HAL_MAX_DELAY);
+  }
+
+  const char done[] = "DONE\n";
+  HAL_UART_Transmit(&huart2, (uint8_t*)done, sizeof(done)-1, HAL_MAX_DELAY);
+}
+
+static void Dashboard_Transmit_CAN(void)
+{
+	  char line[RX_BUF_SIZE];
+	  float V1_avg=0;
+	  float I1_avg=0;
+	  float P1_avg=0;
+	  float V2_avg=0;
+	  float I2_avg=0;
+	  float P2_avg=0;
+
+	  for (int i=0; i<FLOAT_AVG_SIZE;i++)
+	  {
+		  V1_avg+=voltage_avg1[i];
+		  I1_avg+=current_avg1[i];
+		  P1_avg+=power_avg1[i];
+		  V2_avg+=voltage_avg2[i];
+		  I2_avg+=current_avg2[i];
+		  P2_avg+=power_avg2[i];
+	  }
+
+	  V1_avg/=FLOAT_AVG_SIZE;
+	  I1_avg/=FLOAT_AVG_SIZE;
+	  P1_avg/=FLOAT_AVG_SIZE;
+	  V2_avg/=FLOAT_AVG_SIZE;
+	  I2_avg/=FLOAT_AVG_SIZE;
+	  P2_avg/=FLOAT_AVG_SIZE;
+
+
+
+}
+
+int Dashboard_Receive_CAN(void)
+{
 
 }
 

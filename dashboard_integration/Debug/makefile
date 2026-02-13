@@ -34,34 +34,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := power_dashboard_test
+BUILD_ARTIFACT_NAME := power_CAN_UART
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-power_dashboard_test.elf \
+power_CAN_UART.elf \
 
 MAP_FILES += \
-power_dashboard_test.map \
+power_CAN_UART.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-power_dashboard_test.list \
+power_CAN_UART.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: power_dashboard_test.elf secondary-outputs
+main-build: power_CAN_UART.elf secondary-outputs
 
 # Tool invocations
-power_dashboard_test.elf power_dashboard_test.map: $(OBJS) $(USER_OBJS) C:\Users\cnvih\OneDrive\Exoskeleton\Code\exoskeleton-power\dashboard_integration\STM32F446RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "power_dashboard_test.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\cnvih\OneDrive\Exoskeleton\Code\exoskeleton-power\dashboard_integration\STM32F446RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="power_dashboard_test.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+power_CAN_UART.elf power_CAN_UART.map: $(OBJS) $(USER_OBJS) C:\Users\cnvih\OneDrive\Exoskeleton\2025-2026\exoskeleton-power\dashboard_integration\STM32F446RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "power_CAN_UART.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\cnvih\OneDrive\Exoskeleton\2025-2026\exoskeleton-power\dashboard_integration\STM32F446RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="power_CAN_UART.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -70,14 +70,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-power_dashboard_test.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "power_dashboard_test.list"
+power_CAN_UART.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "power_CAN_UART.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) default.size.stdout power_dashboard_test.elf power_dashboard_test.list power_dashboard_test.map
+	-$(RM) default.size.stdout power_CAN_UART.elf power_CAN_UART.list power_CAN_UART.map
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
