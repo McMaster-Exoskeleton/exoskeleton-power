@@ -1,0 +1,8 @@
+../Core/Inc/ring_buffer.h:24:20:can_rx_rb_init	1
+../Core/Inc/ring_buffer.h:31:19:can_rx_rb_push	2
+../Core/Inc/ring_buffer.h:40:19:can_rx_rb_pop	2
+../Core/Src/can_bus.c:16:5:can_bus_init	4
+../Core/Src/can_bus.c:52:5:can_bus_send_ext	4
+../Core/Src/can_bus.c:69:5:can_bus_send_std	4
+../Core/Src/can_bus.c:86:5:can_bus_recv	1
+../Core/Src/can_bus.c:94:6:HAL_CAN_RxFifo0MsgPendingCallback	3

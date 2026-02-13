@@ -1,7 +1,7 @@
 /*
- * ina228.driver.c
+ * ina228_driver.c
  *
- *  Created on: Nov 21, 2025
+ *  Created on: Jan 19, 2026
  *      Author: EmChan
  */
 
