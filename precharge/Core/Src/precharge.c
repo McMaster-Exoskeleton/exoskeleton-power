@@ -259,13 +259,13 @@ static uint8_t CheckForFaults(void) {
     }
 
     // Check bus overvoltage
-    if (g_system_status.bus_sensor.current > BUS_OVERVOLTAGE_THRESHOLD) {
+    if (g_system_status.bus_sensor.voltage > BUS_OVERVOLTAGE_THRESHOLD) {
         g_system_status.fault = FAULT_BUS_OVERVOLTAGE;
         return 1;
     }
 
     // Check bus undervoltage
-    if (g_system_status.bus_sensor.current > BUS_UNDERVOLTAGE_THRESHOLD) {
+    if (g_system_status.bus_sensor.voltage > BUS_UNDERVOLTAGE_THRESHOLD) {
         g_system_status.fault = FAULT_BUS_UNDERVOLTAGE;
         return 1;
     }
