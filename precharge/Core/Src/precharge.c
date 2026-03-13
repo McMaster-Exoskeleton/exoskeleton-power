@@ -169,66 +169,61 @@ static void FSM_Fault(void) {
 static void UpdateSensorReadings(void) {
 
     if (g_system_status.motor1_sensor.healthy) {
-    	// Update health flag if faults detected
         if (INA228_ReadVoltage(INA228_ADDR1, &g_system_status.motor1_sensor.voltage) != HAL_OK) {
             g_system_status.motor1_sensor.healthy = 0;
         }
-        if (INA228_ReadVoltage(INA228_ADDR1, &g_system_status.motor1_sensor.voltage) != HAL_OK) {
+        if (INA228_ReadCurrent(INA228_ADDR1, &g_system_status.motor1_sensor.current, MOTOR_CURRENT_LSB) != HAL_OK) {
         	g_system_status.motor1_sensor.healthy = 0;
         }
-        if (INA228_ReadVoltage(INA228_ADDR1, &g_system_status.motor1_sensor.voltage) != HAL_OK) {
+        if (INA228_ReadPower(INA228_ADDR1, &g_system_status.motor1_sensor.power, MOTOR_POWER_LSB) != HAL_OK) {
         	g_system_status.motor1_sensor.healthy = 0;
         }
     }
 
     if (g_system_status.motor2_sensor.healthy) {
-    	// Update health flag if faults detected
         if (INA228_ReadVoltage(INA228_ADDR2, &g_system_status.motor2_sensor.voltage) != HAL_OK) {
             g_system_status.motor2_sensor.healthy = 0;
         }
-        if (INA228_ReadVoltage(INA228_ADDR2, &g_system_status.motor2_sensor.voltage) != HAL_OK) {
+        if (INA228_ReadCurrent(INA228_ADDR2, &g_system_status.motor2_sensor.current, MOTOR_CURRENT_LSB) != HAL_OK) {
         	g_system_status.motor2_sensor.healthy = 0;
         }
-        if (INA228_ReadVoltage(INA228_ADDR2, &g_system_status.motor2_sensor.voltage) != HAL_OK) {
+        if (INA228_ReadPower(INA228_ADDR2, &g_system_status.motor2_sensor.power, MOTOR_POWER_LSB) != HAL_OK) {
         	g_system_status.motor2_sensor.healthy = 0;
         }
     }
 
     if (g_system_status.motor3_sensor.healthy) {
-    	// Update health flag if faults detected
         if (INA228_ReadVoltage(INA228_ADDR3, &g_system_status.motor3_sensor.voltage) != HAL_OK) {
             g_system_status.motor3_sensor.healthy = 0;
         }
-        if (INA228_ReadVoltage(INA228_ADDR3, &g_system_status.motor3_sensor.voltage) != HAL_OK) {
+        if (INA228_ReadCurrent(INA228_ADDR3, &g_system_status.motor3_sensor.current, MOTOR_CURRENT_LSB) != HAL_OK) {
         	g_system_status.motor3_sensor.healthy = 0;
         }
-        if (INA228_ReadVoltage(INA228_ADDR3, &g_system_status.motor3_sensor.voltage) != HAL_OK) {
+        if (INA228_ReadPower(INA228_ADDR3, &g_system_status.motor3_sensor.power, MOTOR_POWER_LSB) != HAL_OK) {
         	g_system_status.motor3_sensor.healthy = 0;
         }
     }
 
     if (g_system_status.motor4_sensor.healthy) {
-    	// Update health flag if faults detected
         if (INA228_ReadVoltage(INA228_ADDR4, &g_system_status.motor4_sensor.voltage) != HAL_OK) {
             g_system_status.motor4_sensor.healthy = 0;
         }
-        if (INA228_ReadVoltage(INA228_ADDR4, &g_system_status.motor4_sensor.voltage) != HAL_OK) {
+        if (INA228_ReadCurrent(INA228_ADDR4, &g_system_status.motor4_sensor.current, MOTOR_CURRENT_LSB) != HAL_OK) {
         	g_system_status.motor4_sensor.healthy = 0;
         }
-        if (INA228_ReadVoltage(INA228_ADDR4, &g_system_status.motor4_sensor.voltage) != HAL_OK) {
+        if (INA228_ReadPower(INA228_ADDR4, &g_system_status.motor4_sensor.power, MOTOR_POWER_LSB) != HAL_OK) {
         	g_system_status.motor4_sensor.healthy = 0;
         }
     }
 
     if (g_system_status.bus_sensor.healthy) {
-    	// Update health flag if faults detected
         if (INA228_ReadVoltage(INA228_ADDR5, &g_system_status.bus_sensor.voltage) != HAL_OK) {
             g_system_status.bus_sensor.healthy = 0;
         }
-        if (INA228_ReadVoltage(INA228_ADDR5, &g_system_status.bus_sensor.voltage) != HAL_OK) {
+        if (INA228_ReadCurrent(INA228_ADDR5, &g_system_status.bus_sensor.current, BUS_CURRENT_LSB) != HAL_OK) {
         	g_system_status.bus_sensor.healthy = 0;
         }
-        if (INA228_ReadVoltage(INA228_ADDR5, &g_system_status.bus_sensor.voltage) != HAL_OK) {
+        if (INA228_ReadPower(INA228_ADDR5, &g_system_status.bus_sensor.power, BUS_POWER_LSB) != HAL_OK) {
         	g_system_status.bus_sensor.healthy = 0;
         }
     }
