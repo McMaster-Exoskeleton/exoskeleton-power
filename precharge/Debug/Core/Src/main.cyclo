@@ -1,3 +1,9 @@
-../Core/Src/main.c:69:5:main	1
-../Core/Src/main.c:118:6:SystemClock_Config	3
-../Core/Src/main.c:169:6:Error_Handler	1
+../Core/Src/main.c:61:5:main	4
+../Core/Src/main.c:125:13:CAN_Send_INA228_Data	2
+../Core/Src/main.c:168:13:CAN_Send_All_Sensors	1
+../Core/Src/main.c:183:13:UART_ReceiveLine	3
+../Core/Src/main.c:204:12:Parse_Command	7
+../Core/Src/main.c:231:13:Acquire_Data	5
+../Core/Src/main.c:260:13:Transmit_Data	2
+../Core/Src/main.c:283:6:SystemClock_Config	3
+../Core/Src/main.c:330:6:Error_Handler	1

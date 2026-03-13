@@ -45,7 +45,7 @@ typedef struct {
     float voltage;           // Voltage in V
     float current;           // Current in A
     float power;             // Power in W
-    uint8_t healthy;         // Sensor health flag
+    uint8_t healthy;         // Sensor health flag (1 = healthy, 0 = fault/comm error)
 } SensorData_t;
 
 /* System Status Structure */
@@ -59,6 +59,9 @@ typedef struct {
     SensorData_t bus_sensor;
 } SystemStatus_t;
 
+/* Expose global system status so main.c can read sensor data directly */
+extern SystemStatus_t g_system_status;
+
 /* Configuration Parameters */
 #define PRECHARGE_THRESHOLD_PERCENT 95      // Bus voltage must reach 95% of battery
 #define SENSOR_POLL_INTERVAL_MS     50      // Poll sensors every 50ms
@@ -66,6 +69,17 @@ typedef struct {
 #define BUS_OVERVOLTAGE_THRESHOLD   56.0f   // 56V overvoltage threshold for bus
 #define BUS_UNDERVOLTAGE_THRESHOLD  40.0f   // 40V undervoltage threshold for bus
 #define BATTERY_NOMINAL				48.0f 	// 48V nominal battery for system
+
+/* CAN Message IDs */
+#define CAN_ID_MOTOR1   0x101
+#define CAN_ID_MOTOR2   0x102
+#define CAN_ID_MOTOR3   0x103
+#define CAN_ID_MOTOR4   0x104
+#define CAN_ID_BUS      0x105
+
+/* UART Data Logging */
+#define RX_BUF_SIZE     64
+#define MAX_SAMPLES     2000
 
 /* Function Prototypes */
 void precharge_control_init(void);
