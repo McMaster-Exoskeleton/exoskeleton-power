@@ -75,28 +75,42 @@ if response != "OK":
 # 4. Receive Samples
 ############################################
 
+FAULT_MESSAGES = {
+    "FAULT_BUS_OVERCURRENT",
+    "FAULT_BUS_OVERVOLTAGE",
+    "FAULT_BUS_UNDERVOLTAGE",
+    "FAULT_SENSOR_COMM",
+    "FAULT_MOTOR_OVERCURRENT",
+    "FAULT_UNKNOWN",
+}
+
+def is_fault(line):
+    return line in FAULT_MESSAGES
+
 voltages = []
 currents = []
 powers   = []
 
 print("Receiving samples...")
 
-start = 0
-while(start != 1):
-    start = int(input("Enter '1' to start sampling."))
-
 # Print header for console output
 print("\n" + "="*60)
-print(f"{'Sample':<8} {'Voltage (V)':<15} {'Current (A)':<15} {'Power (W)':<15}")
+print(f" {'Voltage (V)':<15} {'Current (A)':<15} {'Power (W)':<15}")
 print("="*60)
 
 while True:
     line_test = ser.readline()
-    print("Test values: ", line_test, "\n")
     line = line_test.decode("ascii", errors="ignore").strip()
 
     if not line:
         continue
+    
+     # Check for fault message from MCU
+    if is_fault(line):
+        print(f"\n  MCU reported fault: {line}")
+        print("Aborting data collection.")
+        ser.close()
+        exit(1)
 
     if line == "DONE":
         print("Sampling complete.")
@@ -139,40 +153,6 @@ time_vector = np.arange(num_samples) / sampling_rate
 
 plt.style.use("seaborn-v0_8")
 
-# Voltage
-plt.figure(figsize=(10, 5))
-plt.plot(time_vector, voltages, label="Voltage (V)")
-plt.xlabel("Time (s)")
-plt.ylabel("Voltage (V)")
-plt.title("Voltage vs Time")
-plt.grid(True)
-plt.legend()
-plt.tight_layout()
-plt.show()
-
-# Current
-plt.figure(figsize=(10, 5))
-plt.plot(time_vector, currents, label="Current (A)")
-plt.xlabel("Time (s)")
-plt.ylabel("Current (A)")
-plt.title("Current vs Time")
-plt.grid(True)
-plt.legend()
-plt.tight_layout()
-plt.show()
-
-# Power
-plt.figure(figsize=(10, 5))
-plt.plot(time_vector, powers, label="Power (W)")
-plt.xlabel("Time (s)")
-plt.ylabel("Power (W)")
-plt.title("Power vs Time")
-plt.grid(True)
-plt.legend()
-plt.tight_layout()
-plt.show()
-
-# Combined
 plt.figure(figsize=(10, 5))
 plt.plot(time_vector, voltages, label="Voltage (V)")
 plt.plot(time_vector, currents, label="Current (A)")
