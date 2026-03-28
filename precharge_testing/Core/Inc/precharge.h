@@ -63,12 +63,12 @@ typedef struct {
 extern SystemStatus_t g_system_status;
 
 /* Configuration Parameters */
-#define PRECHARGE_THRESHOLD_PERCENT 95      // Bus voltage must reach 95% of battery
+#define PRECHARGE_THRESHOLD_PERCENT 80      // Bus voltage must reach (Threshold)% of battery nominal
 #define SENSOR_POLL_INTERVAL_MS     50      // Poll sensors every 50ms
 
-#define BUS_OVERVOLTAGE_THRESHOLD   56.0f   // 56V overvoltage threshold for bus
-#define BUS_UNDERVOLTAGE_THRESHOLD  40.0f   // 40V undervoltage threshold for bus
-#define BATTERY_NOMINAL				48.0f 	// 48V nominal battery for system
+#define BUS_OVERVOLTAGE_THRESHOLD   6.0f   // Overvoltage threshold for bus
+#define BUS_UNDERVOLTAGE_THRESHOLD  0.0f   // Undervoltage threshold for bus
+#define BATTERY_NOMINAL				5.0f // Nominal battery for system
 
 /* Function Prototypes */
 void precharge_control_init(void);

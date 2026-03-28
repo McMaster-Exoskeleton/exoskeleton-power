@@ -96,9 +96,13 @@ int main(void)
 	// Precharge FSM tick (sensors internally polled on SENSOR_POLL_INTERVAL_MS)
 	precharge_fsm_tick();
 
+	//const char msg[] = "Tick\n";
+	//HAL_UART_Transmit(&huart2, (uint8_t *)msg, sizeof(msg) - 1, HAL_MAX_DELAY); // Debugging
+
 	// Check for UART interrupt
 	if (uart_line_ready) {
-		uart_line_ready = 0;
+		uart_line_ready = 0; // Clear interrupt
+
 		if (Parse_Command()) {
 			const char ok[] = "OK\n";
 			HAL_UART_Transmit(&huart2, (uint8_t *)ok, sizeof(ok) - 1, HAL_MAX_DELAY);
@@ -115,18 +119,17 @@ int main(void)
 }
 
 
-// Called automatically by HAL every time one byte arrives
+// ISR for every time 1 byte (1 char) is received
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     if (huart->Instance == USART2) {
-        if (uart_rx_byte == '\n') {
-            rx_buf[rx_index] = '\0';
-            uart_line_ready = 1;   // signal to main loop
-            rx_index = 0;
+        if (uart_rx_byte == '\n') { 	// Detect line completion
+            rx_buf[rx_index] = '\0';	// Null-terminate the string
+            uart_line_ready = 1;   		// Signal to main loop
+            rx_index = 0;				// Reset for next line
         } else if (rx_index < RX_BUF_SIZE - 1) {
-            rx_buf[rx_index++] = (char)uart_rx_byte;
+            rx_buf[rx_index++] = (char)uart_rx_byte; // Add char to buffer
         }
-        // Re-arm for next byte
-        HAL_UART_Receive_IT(&huart2, &uart_rx_byte, 1);
+        HAL_UART_Receive_IT(&huart2, &uart_rx_byte, 1); // Re-arm interrupt for next byte
     }
 }
 
@@ -138,7 +141,7 @@ static int Parse_Command(void)
 {
     if (strncmp(rx_buf, "START", 5) != 0) return 0;
 
-    char *tok = strtok(rx_buf, ",");   // consume "START"
+    char *tok = strtok(rx_buf, ",");
     tok = strtok(NULL, ",");
     if (!tok) return 0;
     sampling_rate = atoi(tok);
