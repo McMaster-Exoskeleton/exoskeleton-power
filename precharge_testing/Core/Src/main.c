@@ -175,13 +175,25 @@ static void Acquire_Data(void)
         const char *fault_msg = NULL;
 
         switch (fault) {
-            case FAULT_BUS_OVERCURRENT:   fault_msg = "FAULT_BUS_OVERCURRENT\n";   break;
-            case FAULT_BUS_OVERVOLTAGE:   fault_msg = "FAULT_BUS_OVERVOLTAGE\n";   break;
-            case FAULT_BUS_UNDERVOLTAGE:  fault_msg = "FAULT_BUS_UNDERVOLTAGE\n";  break;
-            case FAULT_SENSOR_COMM:       fault_msg = "FAULT_SENSOR_COMM\n";       break;
-            case FAULT_MOTOR_OVERCURRENT: fault_msg = "FAULT_MOTOR_OVERCURRENT\n"; break;
-            default:                      fault_msg = "FAULT_UNKNOWN\n";           break;
-        }
+			case FAULT_BUS_OVERCURRENT:
+			  fault_msg = "FAULT_BUS_OVERCURRENT\n";
+			  break;
+			case FAULT_BUS_OVERVOLTAGE:
+			  fault_msg = "FAULT_BUS_OVERVOLTAGE\n";
+			  break;
+			case FAULT_BUS_UNDERVOLTAGE:
+			  fault_msg = "FAULT_BUS_UNDERVOLTAGE\n";
+			  break;
+			case FAULT_SENSOR_COMM:
+			  fault_msg = "FAULT_SENSOR_COMM\n";
+			  break;
+			case FAULT_MOTOR_OVERCURRENT:
+			  fault_msg = "FAULT_MOTOR_OVERCURRENT\n";
+			  break;
+			default:
+			  fault_msg = "FAULT_UNKNOWN\n";
+			  break;
+		}
 
         if (fault_msg)
             HAL_UART_Transmit(&huart2, (uint8_t *)fault_msg, strlen(fault_msg), HAL_MAX_DELAY);

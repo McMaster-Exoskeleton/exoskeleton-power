@@ -1,9 +1,0 @@
-../Core/Src/main.c:61:5:main	24	static
-../Core/Src/main.c:125:13:CAN_Send_INA228_Data	40	static
-../Core/Src/main.c:168:13:CAN_Send_All_Sensors	8	static
-../Core/Src/main.c:183:13:UART_ReceiveLine	16	static
-../Core/Src/main.c:204:12:Parse_Command	16	static
-../Core/Src/main.c:231:13:Acquire_Data	24	static
-../Core/Src/main.c:260:13:Transmit_Data	128	static
-../Core/Src/main.c:283:6:SystemClock_Config	88	static
-../Core/Src/main.c:330:6:Error_Handler	4	static,ignoring_inline_asm
