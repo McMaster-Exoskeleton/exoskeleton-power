@@ -60,8 +60,8 @@ all: main-build
 main-build: INA228\ Double\ Data\ Logger.elf secondary-outputs
 
 # Tool invocations
-INA228\ Double\ Data\ Logger.elf INA228\ Double\ Data\ Logger.map: $(OBJS) $(USER_OBJS) C:\Users\cnvih\OneDrive\Exoskeleton\Code\exoskeleton-power\INA228_Data_Data_Logger\STM32F446RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "INA228 Double Data Logger.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\cnvih\OneDrive\Exoskeleton\Code\exoskeleton-power\INA228_Data_Data_Logger\STM32F446RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="INA228 Double Data Logger.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
+INA228\ Double\ Data\ Logger.elf INA228\ Double\ Data\ Logger.map: $(OBJS) $(USER_OBJS) C:\Users\emily\GitRepos\exoskeleton-power\INA228_Data_Data_Logger\STM32F446RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "INA228 Double Data Logger.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\emily\GitRepos\exoskeleton-power\INA228_Data_Data_Logger\STM32F446RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="INA228 Double Data Logger.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

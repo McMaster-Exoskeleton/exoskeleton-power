@@ -40,7 +40,7 @@ import matplotlib.pyplot as plt
 # 1. Serial Configuration
 ############################################
 
-SERIAL_PORT = "COM13"      # <-- change if needed
+SERIAL_PORT = "COM14"      # <-- change if needed
 BAUD_RATE   = 115200
 TIMEOUT_S   = 2
 
@@ -83,7 +83,7 @@ print("Receiving samples...")
 
 start = 0
 while(start != 1):
-    start = int(input("Enter '1' to start sampling."))
+    start = int(input("Enter '1' to start sampling. "))
 
 # Print header for console output
 print("\n" + "="*60)

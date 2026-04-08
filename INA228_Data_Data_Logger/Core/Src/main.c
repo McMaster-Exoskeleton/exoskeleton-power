@@ -69,7 +69,7 @@ void SystemClock_Config(void);
 
 /* ================= USER DEFINES ================= */
 #define RX_BUF_SIZE    64
-#define MAX_SAMPLES    2000
+#define MAX_SAMPLES    10000
 /* =============================================== */
 
 /* UART receive buffer */
@@ -82,13 +82,10 @@ static int total_time    = 0;   // seconds
 static int num_samples   = 0;
 
 /* Data buffers */
-static float voltage_buf1[MAX_SAMPLES];
-static float current_buf1[MAX_SAMPLES];
-static float power_buf1[MAX_SAMPLES];
+static float voltage_buf[MAX_SAMPLES];
+static float current_buf[MAX_SAMPLES];
+static float power_buf[MAX_SAMPLES];
 
-static float voltage_buf2[MAX_SAMPLES];
-static float current_buf2[MAX_SAMPLES];
-static float power_buf2[MAX_SAMPLES];
 
 int main(void)
 {
@@ -102,19 +99,12 @@ int main(void)
   MX_USART2_UART_Init();
 
   /* Set GPIO outputs PB0, PB1, PB2 LOW */
-  HAL_GPIO_WritePin(GPIOB,
-                    GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2,
-                    GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2, GPIO_PIN_RESET);
 
-  /* Initialize both INA228 sensors */
-  if (INA228_Init(INA228_ADDR1, 0.015f) != HAL_OK)
+  /* Initialize INA228 */
+  if (INA228_Init(INA228_ADDR1, 0.01f) != HAL_OK)
   {
-    const char *msg = "INA228 #1 INIT FAILED\n";
-    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
-  }
-  if (INA228_Init(INA228_ADDR2, 0.015f) != HAL_OK)
-  {
-    const char *msg = "INA228 #2 INIT FAILED\n";
+    const char *msg = "INA228 INIT FAILED\n";
     HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
   }
 
@@ -130,7 +120,7 @@ int main(void)
 
       Acquire_Data();
       Transmit_Data();
-      //Transmit_Data_Test();
+      /*Transmit_Data_Test();*/
     }
     else
     {
@@ -140,69 +130,60 @@ int main(void)
   }
 }
 
-/* ========================================================= */
-/* Receive one UART line terminated by '\n'                  */
-/* ========================================================= */
+// Reads incoming data from the PC one byte at a time until it receives a newline character '\n'
 static void UART_ReceiveLine(void)
 {
   rxIndex = 0;
-  memset(rxBuf, 0, sizeof(rxBuf));
+  memset(rxBuf, 0, sizeof(rxBuf)); // Clear the buffer
 
   while (1)
   {
     uint8_t byte;
-    HAL_UART_Receive(&huart2, &byte, 1, HAL_MAX_DELAY);
+    HAL_UART_Receive(&huart2, &byte, 1, HAL_MAX_DELAY); // Wait for 1 byte
 
     if (byte == '\n')
       break;
 
     if (rxIndex < RX_BUF_SIZE - 1)
-      rxBuf[rxIndex++] = (char)byte;
+      rxBuf[rxIndex++] = (char)byte; // Store the character
   }
 }
 
-/* ========================================================= */
-/* Parse: START,<sampling_rate>,<total_time>                 */
-/* ========================================================= */
+// Checks if the received line is a valid START command and extracts the sampling parameters
 static int Parse_Command(void)
 {
-  if (strncmp(rxBuf, "START", 5) != 0)
+  if (strncmp(rxBuf, "START", 5) != 0) // Check if begins with "START"
     return 0;
 
   char *tok = strtok(rxBuf, ",");   // START
-  tok = strtok(NULL, ",");
+  tok = strtok(NULL, ",");          // Get next token (sampling_rate)
   if (!tok) return 0;
-  sampling_rate = atoi(tok);
+  sampling_rate = atoi(tok);        // Convert string to integer
 
-  tok = strtok(NULL, ",");
+  tok = strtok(NULL, ",");           // Get next token (total_time)
   if (!tok) return 0;
   total_time = atoi(tok);
 
   if (sampling_rate <= 0 || total_time <= 0)
-    return 0;
+    return 0; // Invalid values
 
   num_samples = sampling_rate * total_time;
   if (num_samples > MAX_SAMPLES)
-    num_samples = MAX_SAMPLES;
+    num_samples = MAX_SAMPLES; // Cap at 10,000 samples
 
   return 1;
 }
 
-/* ========================================================= */
-/* Acquire data from INA228                                  */
-/* ========================================================= */
+// Reads voltage, current, and power measurements from the INA228 sensor at the specified sampling rate
 static void Acquire_Data(void)
 {
-  uint8_t healthy1 = 0, healthy2 = 0;
-  INA228_CheckHealth(INA228_ADDR1, &healthy1);
-  INA228_CheckHealth(INA228_ADDR2, &healthy2);
+  uint8_t healthy = 0;
+  INA228_CheckHealth(INA228_ADDR1, &healthy); // Check if the sensor is working
 
-  if (!healthy1 || !healthy2)
+  if (!healthy)
   {
-    for (int i = 0; i < num_samples; i++) {
-    	voltage_buf1[i] = current_buf1[i] = power_buf1[i] = 0.0f;
-    	voltage_buf2[i] = current_buf2[i] = power_buf2[i] = 0.0f;
-    }
+    for (int i = 0; i < num_samples; i++)
+      voltage_buf[i] = current_buf[i] = power_buf[i] = 0.0f; // Fill with zeros to indicate sensor failed
     return;
   }
 
@@ -210,56 +191,41 @@ static void Acquire_Data(void)
 
   for (int i = 0; i < num_samples; i++)
   {
-    float v1 = 0.0f, c1 = 0.0f, p1 = 0.0f;
-    float v2 = 0.0f, c2 = 0.0f, p2 = 0.0f;
+    float v = 0.0f, c = 0.0f, p = 0.0f;
 
-    INA228_ReadVoltage(INA228_ADDR1, &v1);
-    INA228_ReadCurrent(INA228_ADDR1, &c1);
-    INA228_ReadPower  (INA228_ADDR1, &p1);
+    INA228_ReadVoltage(INA228_ADDR1, &v);
+    INA228_ReadCurrent(INA228_ADDR1, &c);
+    INA228_ReadPower  (INA228_ADDR1, &p);
 
-    INA228_ReadVoltage(INA228_ADDR2, &v2);
-    INA228_ReadCurrent(INA228_ADDR2, &c2);
-    INA228_ReadPower  (INA228_ADDR2, &p2);
-
-    voltage_buf1[i] = v1;
-    current_buf1[i] = c1;
-    power_buf1[i]   = p1;
-
-    voltage_buf2[i] = v2;
-    current_buf2[i] = c2;
-    power_buf2[i]   = p2;
+    voltage_buf[i] = v;
+    current_buf[i] = c;
+    power_buf[i]   = p;
 
     HAL_Delay(delay_ms);
   }
 }
 
-/* ========================================================= */
-/* Transmit data from both sensors to PC                     */
-/* Format: v1,c1,p1,v2,c2,p2                                 */
-/* ========================================================= */
+// Transmits the acquired data back to the PC via UART in CSV format
 static void Transmit_Data(void)
 {
-  char line[RX_BUF_SIZE];
+  char line[64];
 
   for (int i = 0; i < num_samples; i++)
   {
     int len = snprintf(line, sizeof(line),
-                       "%.6f,%.6f,%.6f,%.6f,%.6f,%.6f\n",
-                       voltage_buf1[i],
-                       current_buf1[i],
-                       power_buf1[i],
-					   voltage_buf2[i],
-                       current_buf2[i],
-                       power_buf2[i]);
+                       "%.6f,%.6f,%.6f\n", // Format: voltage,current,power
+                       voltage_buf[i],
+                       current_buf[i],
+                       power_buf[i]);
 
     HAL_UART_Transmit(&huart2, (uint8_t*)line, len, HAL_MAX_DELAY);
   }
 
-  const char done[] = "DONE\n";
+  const char done[] = "DONE\n"; // Signal end of transmission
   HAL_UART_Transmit(&huart2, (uint8_t*)done, sizeof(done)-1, HAL_MAX_DELAY);
 }
 
-/* ========================================================= */
+// Test function to transmit synthetic data for verification
 static void Transmit_Data_Test(void)
 {
   char line[64];
@@ -289,28 +255,28 @@ static void Transmit_Data_Test(void)
   */
 void SystemClock_Config(void)
 {
-	RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-	RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-	__HAL_RCC_PWR_CLK_ENABLE();
-	__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+__HAL_RCC_PWR_CLK_ENABLE();
+__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-	HAL_RCC_OscConfig(&RCC_OscInitStruct);
+RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+HAL_RCC_OscConfig(&RCC_OscInitStruct);
 
-	RCC_ClkInitStruct.ClockType =
+RCC_ClkInitStruct.ClockType =
 	RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK |
 	RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
 
-	RCC_ClkInitStruct.SYSCLKSource   = RCC_SYSCLKSOURCE_HSI;
-	RCC_ClkInitStruct.AHBCLKDivider  = RCC_SYSCLK_DIV1;
-	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+RCC_ClkInitStruct.SYSCLKSource   = RCC_SYSCLKSOURCE_HSI;
+RCC_ClkInitStruct.AHBCLKDivider  = RCC_SYSCLK_DIV1;
+RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-	HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0);
+HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0);
 }
 
 /* USER CODE BEGIN 4 */
