@@ -16,14 +16,12 @@
 CircularBuffer_t g_voltage_buf[NUM_SENSORS];
 CircularBuffer_t g_current_buf[NUM_SENSORS];
 
-/* Internal sensor config table */
+// Sensor configuration table
 typedef struct {
     INA228_Location_t location;
     uint16_t          can_id;
     uint8_t           enabled;
 } SensorConfig_t;
-
-static const uint8_t enabled[NUM_SENSORS] = SENSOR_ENABLED; // enabled sensors for CAN channel
 
 static SensorConfig_t sensors[NUM_SENSORS] = {
     { INA228_BUS,    CAN_ID_BUS,    0 },
@@ -32,6 +30,9 @@ static SensorConfig_t sensors[NUM_SENSORS] = {
     { INA228_MOTOR3, CAN_ID_MOTOR3, 0 },
     { INA228_MOTOR4, CAN_ID_MOTOR4, 0 },
 };
+
+// Enabled sensors for CAN channel
+static const uint8_t enabled[NUM_SENSORS] = SENSOR_ENABLED;
 
 /**
  * @brief CAN: Send one sensor frame
@@ -46,9 +47,9 @@ static SensorConfig_t sensors[NUM_SENSORS] = {
  */
 static void CAN_Send_INA228_Frame(uint16_t can_id, float voltage, float current, uint8_t closed, uint8_t sensor_status, uint8_t fault)
 {
-	CAN_TxHeaderTypeDef TxHeader; // CAN frame header
-	uint8_t  TxData[7] = {0};	  // Data payload
-	uint32_t TxMailbox;			  //
+	CAN_TxHeaderTypeDef TxHeader;
+	uint8_t  TxData[8] = {0};
+	uint32_t TxMailbox;
 
     TxHeader.StdId = can_id;
     TxHeader.IDE   = CAN_ID_STD;
@@ -59,45 +60,50 @@ static void CAN_Send_INA228_Frame(uint16_t can_id, float voltage, float current,
     int16_t v = (int16_t)(voltage * 100.0f);
     int16_t c = (int16_t)(current * 100.0f);
 
-    TxData[0] = (uint8_t)(v & 0xFF);			// voltage LSB
-    TxData[1] = (uint8_t)((v >> 8) & 0xFF);		// voltage MSB
-    TxData[2] = (uint8_t)(c & 0xFF);			// current LSB
-    TxData[3] = (uint8_t)((c >> 8) & 0xFF);		// current MSB
-    TxData[4] = closed;							// relay or contactor status
-    TxData[5] = sensor_status;					// sensor status
-	TxData[6] = fault;							// system fault
+    TxData[0] = v & 0xFF;			// Voltage LSB
+    TxData[1] = (v >> 8) & 0xFF;	// Voltage MSB
+    TxData[2] = c & 0xFF;			// Current LSB
+    TxData[3] = (c >> 8) & 0xFF;	// Current MSB
+    TxData[4] = closed;				// Relay or contactor status
+    TxData[5] = sensor_status;		// Sensor status
+	TxData[6] = fault;				// System fault
 
 	// Send CAN frame if there's a free mailbox
     if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) > 0) {
-        HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
-        HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin); 					// Visual LED confirmation
+        HAL_StatusTypeDef ret = HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox);
+        if (ret != HAL_OK){
+        	HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin); // Blink if not sending data
+        }
+
     }
-    // NOTE: STM32 CAN peripheral has 3 hardware transmit mailboxes
-    // Since we're sending 5 frames per telemetry_tick() call, add a delay between sends to allow time for mailboxes to free up
 }
 
 
-/* Public API Functions */
+// Public API Functions
 
+/*
+ * @brief Initialize all enabled sensors
+ */
 void telemetry_init(void)
 {
 	for(int i = 0; i < NUM_SENSORS; i++){
 		circ_buf_init(&g_voltage_buf[i]);
 		circ_buf_init(&g_current_buf[i]);
-		sensors[i].enabled = enabled[i]; // disabled sensors will be set to 0
+		sensors[i].enabled = enabled[i]; // Disabled sensors will be set to 0
 	}
 }
 
 void telemetry_tick(void)
 {
-	uint8_t closed = (get_current_state() == STATE_NORMAL_OPERATION);  // relay or contactor closed
-    uint8_t fault = (get_current_fault() != FAULT_NONE);			   // system fault
+	uint8_t closed = (get_current_state() == STATE_NORMAL_OPERATION);  // Relay or contactor closed
+    uint8_t fault = (get_current_fault() != FAULT_NONE);			   // System fault
+
+    HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin); // Debugging
 
     // Send CAN frames for all sensors
-    //for (uint8_t i = 0; i < NUM_SENSORS; i++) {
-    int i = 0;
+    for (uint8_t i = 0; i < NUM_SENSORS; i++) {
 
-        //if (!sensors[i].enabled) continue; // skip disabled sensors
+        if (!sensors[i].enabled) continue; // Skip disabled sensors
 
         // Obtain latest sensor reading
         SensorData_t raw;
@@ -114,7 +120,7 @@ void telemetry_tick(void)
         // Send CAN frame of 1 sensor
         CAN_Send_INA228_Frame(sensors[i].can_id, v_avg, c_avg, closed, raw.healthy, fault);
         HAL_Delay(1);
-    //}
+    }
 }
 
 
