@@ -14,7 +14,7 @@ telemetry = {
     "fault": 0, 
 }
 
-ids = [0x100, 0x101, 0x102, 0x103, 0x104]
+ids = [0x100, 0x101, 0x102, 0x103, 0x104] # Bus, M1, M2, M3, M4
 
 for msg in bus:
     if msg.arbitration_id in ids:
