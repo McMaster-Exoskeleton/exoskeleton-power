@@ -130,6 +130,7 @@ void precharge_fsm_tick(void) {
 /* FSM State: PRECHARGE */
 static void FSM_Precharge(void) {
     SetContactor(0); // Contactor open - precharge happens through parallel resistor
+    PowerMotors(0);  // Motor relays open
 
     if(CheckForFaults()) {
         g_system_status.state = STATE_FAULT;
@@ -144,7 +145,7 @@ static void FSM_Precharge(void) {
 /* FSM State: NORMAL OPERATION */
 static void FSM_Normal_Operation(void) {
     SetContactor(1);     // Contactor closed - current flow bypasses precharge resistor
-    //PowerMotors(1); 	 // Output GPIO to 4 motor PCB gate drivers
+    PowerMotors(1); 	 // Motor relays closed
 
     if(CheckForFaults()) {
         g_system_status.state = STATE_FAULT;
@@ -155,6 +156,7 @@ static void FSM_Normal_Operation(void) {
 /* FSM State: FAULT */
 static void FSM_Fault(void) {
     SetContactor(0); // Contactor open
+    PowerMotors(0);  // Motor relays open
 
     // NOTE: Fault is latched until external reset
 }

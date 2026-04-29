@@ -96,7 +96,7 @@ void telemetry_init(void)
 void telemetry_tick(void)
 {
 	uint8_t closed = (get_current_state() == STATE_NORMAL_OPERATION);  // Relay or contactor closed
-    uint8_t fault = (get_current_fault() != FAULT_NONE);			   // System fault
+    uint8_t fault = get_current_fault(); 		  					   // System fault
 
     HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin); // Debugging
 

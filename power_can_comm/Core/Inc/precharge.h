@@ -69,6 +69,9 @@ extern SystemStatus_t g_system_status;
 #define BUS_UNDERVOLTAGE_THRESHOLD  0.0f    // Undervoltage threshold for bus
 #define BATTERY_NOMINAL				40.0f   // Nominal battery for system
 
+#define BUS_OVERCURRENT_THRESHOLD	50.0f   // Overcurrent threshold for bus
+#define MOTOR_OVERCURRENT_THRESHOLD	25.0f   // Overcurrent threshold for motors
+
 /* Function Prototypes */
 void precharge_control_init(void);
 void precharge_fsm_tick(void);

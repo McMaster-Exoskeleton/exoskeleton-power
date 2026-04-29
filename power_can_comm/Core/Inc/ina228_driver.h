@@ -55,14 +55,14 @@
 
 /* Bus Calibration Constants */
 #define BUS_SHUNT_RESISTOR    			0.003f  	// 3 mOhm (calculations in Power Task 4 doc)
-#define BUS_OVERCURRENT_THRESHOLD		50.0f		// 50A max current
-#define BUS_CURRENT_LSB  				(BUS_OVERCURRENT_THRESHOLD / 524288.0f)   	// datasheet Section 8.1.2 equation 3
+#define BUS_CURRENT_MAX					50.0f		// 50A max current
+#define BUS_CURRENT_LSB  				(BUS_CURRENT_MAX / 524288.0f)   	// datasheet Section 8.1.2 equation 3
 #define BUS_POWER_LSB					(3.2f * BUS_CURRENT_LSB) 					// datasheet Section 8.1.2 equation 5
 
 /* Motor Calibration Constants */
 #define MOTOR_SHUNT_RESISTOR    		0.006f  	// 6 mOhm (calculations in Power Task 4 doc)
-#define MOTOR_OVERCURRENT_THRESHOLD   	25.0f   	// 25A max current
-#define MOTOR_CURRENT_LSB  				(MOTOR_OVERCURRENT_THRESHOLD / 524288.0f)
+#define MOTOR_CURRENT_MAX   			25.0f   	// 25A max current
+#define MOTOR_CURRENT_LSB  				(MOTOR_CURRENT_MAX / 524288.0f)
 #define MOTOR_POWER_LSB					(3.2f * MOTOR_CURRENT_LSB)
 
 /* Shared Calibration Constants */
