@@ -1,0 +1,13 @@
+../Core/Src/precharge.c:31:6:precharge_control_init	16	static
+../Core/Src/precharge.c:93:6:precharge_fsm_tick	16	static
+../Core/Src/precharge.c:123:13:FSM_Precharge	8	static
+../Core/Src/precharge.c:138:13:FSM_Normal_Operation	8	static
+../Core/Src/precharge.c:149:13:FSM_Fault	8	static
+../Core/Src/precharge.c:157:13:UpdateSensorReadings	16	static
+../Core/Src/precharge.c:242:16:CheckForFaults	4	static
+../Core/Src/precharge.c:277:16:IsPrechargeComplete	4	static
+../Core/Src/precharge.c:283:13:SetContactor	16	static
+../Core/Src/precharge.c:289:13:PowerMotors	16	static
+../Core/Src/precharge.c:307:18:get_current_state	4	static
+../Core/Src/precharge.c:311:13:get_current_fault	4	static
+../Core/Src/precharge.c:315:6:get_sensor_data	16	static

@@ -1,0 +1,3 @@
+../Core/Src/telemetry.c:48:13:CAN_Send_INA228_Frame	3
+../Core/Src/telemetry.c:87:6:telemetry_init	2
+../Core/Src/telemetry.c:96:6:telemetry_tick	3

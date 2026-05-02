@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 # 1. Serial Configuration
 ############################################
 
-SERIAL_PORT = "COM6"      # <-- change if needed
+SERIAL_PORT = "COM14"      # <-- change if needed
 BAUD_RATE   = 115200
 TIMEOUT_S   = 2
 
